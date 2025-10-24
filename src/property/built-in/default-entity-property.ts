@@ -1,5 +1,5 @@
 import { type Abortable } from '@xstd/abortable';
-import { type PushToPullOptions, ReadableFlow, ReadableFlowContext } from '@xstd/flow';
+import { type PushToPullOptions, ReadableFlow, type ReadableFlowContext } from '@xstd/flow';
 import { type EntityProperty } from '../entity-property.js';
 
 /**

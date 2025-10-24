@@ -1,5 +1,5 @@
 import { type Abortable } from '@xstd/abortable';
-import { type PushToPullOptions, ReadableFlow } from '@xstd/flow';
+import { type PushToPullOptions, type ReadableFlow } from '@xstd/flow';
 
 /**
  * Represents an _abstract_ `property`: a **value** we can _read_, _write_, and _observe_.
