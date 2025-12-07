@@ -1,0 +1,43 @@
+import { type Abortable } from '@xstd/abortable';
+import { type Action } from '../../src/async/action.js';
+
+/* GET */
+
+export type GetEntityValue<GValue> = Action<[], GValue, GetEntityValueOptions>;
+
+export interface GetEntityValueOptions extends Abortable {
+  readonly mode?: GetEntityValueMode;
+}
+
+export type GetEntityValueMode = 'pull' | 'observe';
+
+/* SET */
+
+export type SetEntityValue<GValue> = Action<[value: GValue], void>;
+
+/* PROPERTY */
+
+export interface EntityProperty<GValue> {
+  readonly get: GetEntityValue<GValue>;
+  readonly set: SetEntityValue<GValue>;
+}
+
+/* ACTION */
+
+export type EntityAction<
+  GArguments extends readonly unknown[],
+  GReturn,
+  GOptions extends Abortable = Abortable,
+> = Action<GArguments, GReturn, GOptions>;
+
+/* EVENT */
+
+export type EntityEvent<GEvent> = Action<[], GEvent>;
+
+/* ENTITY */
+
+export interface Entity {
+  readonly property: Record<string, EntityProperty<any>>;
+  readonly action: Record<string, Action<any, any, any>>;
+  readonly event: Record<string, EntityEvent<any>>;
+}

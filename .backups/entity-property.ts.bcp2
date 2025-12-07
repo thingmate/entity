@@ -23,29 +23,33 @@ export interface EntityPropertyOptions<GValue> {
  * @template GValue The type of the property value.
  */
 export class EntityProperty<GValue> {
-  static readonly #notReadable: Action<[], any> = new Action<[], unknown>(
+  // static get READABLE(): 1 {
+  //   return 1;
+  // }
+  //
+  // static get WRITABLE(): 2 {
+  //   return 2;
+  // }
+  //
+  // static get OBSERVABLE(): 4 {
+  //   return 4;
+  // }
+
+  static readonly #defaultRead: Action<[], any> = new Action<[], unknown>(
     async (signal: AbortSignal): Promise<unknown> => {
       signal.throwIfAborted();
       throw new Error('Property is not readable.');
     },
   );
 
-  static get notReadable(): ReadEntityPropertyAction<any> {
-    return EntityProperty.#notReadable;
-  }
-
-  static readonly #notWritable: Action<[value: any], void> = new Action<[value: unknown], void>(
+  static readonly #defaultWrite: Action<[value: any], void> = new Action<[value: unknown], void>(
     async (signal: AbortSignal): Promise<void> => {
       signal.throwIfAborted();
       throw new Error('Property is not writable.');
     },
   );
 
-  static get notWritable(): WriteEntityPropertyAction<any> {
-    return EntityProperty.#notWritable;
-  }
-
-  static readonly #notObservable: ObserveEntityPropertyFlow<any> = new Flow<
+  static readonly #defaultObserve: Flow<any, [options?: PushToPullOptions]> = new Flow<
     unknown,
     [options?: PushToPullOptions]
   >(async function* ({ signal }: FlowContext): FlowIterator<unknown> {
@@ -53,53 +57,54 @@ export class EntityProperty<GValue> {
     throw new Error('Property is not observable.');
   });
 
-  static get notObservable(): ObserveEntityPropertyFlow<any> {
-    return EntityProperty.#notObservable;
-  }
-
-  readonly #read: ReadEntityPropertyAction<GValue> | undefined;
-  readonly #write: WriteEntityPropertyAction<GValue> | undefined;
-  readonly #observe: ObserveEntityPropertyFlow<GValue> | undefined;
+  readonly #read: ReadEntityPropertyAction<GValue>;
+  readonly #write: WriteEntityPropertyAction<GValue>;
+  readonly #observe: ObserveEntityPropertyFlow<GValue>;
 
   constructor({ read, write, observe }: EntityPropertyOptions<GValue> = {}) {
-    this.#read = read === undefined ? undefined : Action.of(read);
-    this.#write = write === undefined ? undefined : Action.of(write);
-    this.#observe = observe;
+    // this.#mode =
+    //   (read !== undefined ? EntityProperty.READABLE : 0) &
+    //   (write !== undefined ? EntityProperty.WRITABLE : 0) &
+    //   (observe !== undefined ? EntityProperty.OBSERVABLE : 0);
+
+    this.#read = read === undefined ? EntityProperty.#defaultRead : Action.of(read);
+    this.#write = write === undefined ? EntityProperty.#defaultWrite : Action.of(write);
+    this.#observe = observe === undefined ? EntityProperty.#defaultObserve : observe;
   }
 
   /* IO */
 
-  get read(): ReadEntityPropertyAction<GValue> | undefined {
+  get readable(): boolean {
+    return this.#read !== EntityProperty.#defaultRead;
+  }
+
+  get read(): ReadEntityPropertyAction<GValue> {
     return this.#read;
   }
 
-  get read$(): ReadEntityPropertyAction<GValue> {
-    return this.#read ?? EntityProperty.#notReadable;
+  get writable(): boolean {
+    return this.#write !== EntityProperty.#defaultWrite;
   }
 
-  get write(): WriteEntityPropertyAction<GValue> | undefined {
+  get write(): WriteEntityPropertyAction<GValue> {
     return this.#write;
   }
 
-  get write$(): WriteEntityPropertyAction<GValue> {
-    return this.#write ?? EntityProperty.#notWritable;
+  get observable(): boolean {
+    return this.#observe !== EntityProperty.#defaultObserve;
   }
 
-  get observe(): ObserveEntityPropertyFlow<GValue> | undefined {
+  get observe(): ObserveEntityPropertyFlow<GValue> {
     return this.#observe;
-  }
-
-  get observe$(): ObserveEntityPropertyFlow<GValue> {
-    return this.#observe ?? EntityProperty.#notObservable;
   }
 
   /* OPERATIONS */
 
   map<GNewValue>({ to, from }: EntityPropertyMapper<GValue, GNewValue>): EntityProperty<GNewValue> {
     return new EntityProperty<GNewValue>({
-      read: this.#read === undefined ? undefined : this.#read.then(to),
-      write: this.#write === undefined ? undefined : this.#write.mapArguments(mapOneArgument(from)),
-      observe: this.#observe === undefined ? undefined : this.#observe.map(to),
+      read: this.readable ? this.read.then(to) : undefined,
+      write: this.writable ? this.write.mapArguments(mapOneArgument(from)) : undefined,
+      observe: this.observe.map(to),
     });
   }
 }

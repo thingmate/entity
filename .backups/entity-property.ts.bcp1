@@ -1,0 +1,82 @@
+import { Action, type ActionLike } from '@xstd/action';
+import { Flow, type FlowContext, type FlowIterator, type PushToPullOptions } from '@xstd/flow';
+
+export interface EntityPropertyOptions<GValue> {
+  readonly get?: ActionLike<[], GValue>;
+  readonly set?: ActionLike<[value: GValue], void>;
+  readonly observe?: Flow<GValue, [optins?: PushToPullOptions]>;
+}
+
+/**
+ * Represents an _abstract_ `property`: a **value** that can be read, written, or observed.
+ *
+ * @template GValue The type of the property value.
+ */
+export class EntityProperty<GValue> {
+  static readonly READ = 1 /* 1 << 0 */;
+  static readonly WRITE = 2 /* 1 << 1 */;
+  static readonly OBSERVE = 4 /* 1 << 2 */;
+
+  static readonly #defaultGet: Action<[], any> = new Action<[], unknown>(
+    async (signal: AbortSignal): Promise<unknown> => {
+      signal.throwIfAborted();
+      throw new Error('Property is not readable.');
+    },
+  );
+
+  static readonly #defaultSet: Action<[value: any], void> = new Action<[value: unknown], void>(
+    async (signal: AbortSignal): Promise<void> => {
+      signal.throwIfAborted();
+      throw new Error('Property is not writable.');
+    },
+  );
+
+  static readonly #defaultObserve: Flow<any, [options?: PushToPullOptions]> = new Flow<
+    unknown,
+    [options?: PushToPullOptions]
+  >(async function* ({ signal }: FlowContext): FlowIterator<unknown> {
+    signal.throwIfAborted();
+    throw new Error('Property is not observable.');
+  });
+
+  readonly #mode: number;
+
+  readonly #get: Action<[], GValue>;
+  readonly #set: Action<[value: GValue], void>;
+  readonly #observe: Flow<GValue, [options?: PushToPullOptions]>;
+
+  constructor({
+    get = EntityProperty.#defaultGet,
+    set = EntityProperty.#defaultSet,
+    observe = EntityProperty.#defaultObserve,
+  }: EntityPropertyOptions<GValue> = {}) {
+    this.#mode = Flow.of(this.mode);
+
+    this.#get = Action.of(get);
+    this.#set = Action.of(set);
+    this.#observe = observe;
+  }
+
+  get readable(): boolean {
+    return this.#get;
+  }
+
+  get get(): Action<[], GValue> {
+    return this.#get;
+  }
+
+  get set(): Action<[value: GValue], void> {
+    return this.#set;
+  }
+
+  get observe(): Flow<GValue, [options?: PushToPullOptions]> {
+    return this.#observe;
+  }
+}
+
+/**
+ * Represents a _named_ collection of `EntityProperty`s.
+ */
+export type EntityPropertyMap = {
+  readonly [key: string]: EntityProperty<any>;
+};

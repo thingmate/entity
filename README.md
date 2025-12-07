@@ -5,6 +5,8 @@
 
 ## @thingmate/entity
 
+[//]: # (TODO rework doc)
+
 Universal API around property/action/event.
 
 ## 📦 Installation
